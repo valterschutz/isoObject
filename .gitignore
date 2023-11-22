@@ -1,4 +1,5 @@
 # Ignore build folders
 build/
+build_arm/
 install/
 log/
