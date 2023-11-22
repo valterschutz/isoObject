@@ -57,14 +57,20 @@ public:
     using namespace boost::asio;
     using ip::tcp;
   }
-  myObject(std::string ip) : ISO22133::TestObject(ip), dummyMember(0), m_ioService{}, m_socket{m_ioService} {
-    ObjectSettingsType osem;
-    osem.testMode = TEST_MODE_UNAVAILABLE;
-    setMonr(1, 2, 3, 0.4, 5, 6);
-    setObjectSettings(osem);
-
-    // connect to the server
-    m_socket.connect(tcp::endpoint(ip::address::from_string("127.0.0.1"), 50000));
+  myObject(std::string ip) :
+    ISO22133::TestObject(ip),
+    dummyMember(0),
+    m_ioService{},
+    m_acceptor{m_ioService, tcp::endpoint(tcp::v4(), 50000)},
+    m_socket{m_ioService} {
+      ObjectSettingsType osem;
+      osem.testMode = TEST_MODE_UNAVAILABLE;
+      setMonr(1, 2, 3, 0.4, 5, 6);
+      setObjectSettings(osem);
+      
+      // accept a connection
+      m_acceptor.accept(m_socket);
+      std::cout << "[BIKE]: Accepted connection" << std::endl;
   }
   /**
    * @brief User must override this function for handling internal
@@ -134,6 +140,7 @@ private:
     std::cout << ss.str();
   };
   io_service m_ioService;
+  tcp::acceptor m_acceptor;
   tcp::socket m_socket;
   void sendToLabView(std::string_view message) {
     const char* cstr = message.data();
