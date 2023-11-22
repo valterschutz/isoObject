@@ -18,8 +18,6 @@ public:
 	void onOSTM(ObjectCommandType& ostm) override;
 	void onSTRT(StartMessageType& strt) override;
 private:
-  int dummyMember;
-  void dummyFunc();
   io_service m_ioService;
   tcp::acceptor m_acceptor;
   tcp::socket m_socket;

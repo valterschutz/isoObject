@@ -6,7 +6,6 @@ using ip::tcp;
 
 myObject::myObject(std::string ip) :
   ISO22133::TestObject(ip),
-  dummyMember(0),
   m_ioService{},
   m_acceptor{m_ioService, tcp::endpoint(tcp::v4(), 50000)},
   m_socket{m_ioService} {
@@ -51,12 +50,6 @@ void myObject::onOSTM(ObjectCommandType& ostm) {
 void myObject::onSTRT(StartMessageType &) {
   std::cout << "Object Starting" << std::endl;
 }
-
-void myObject::dummyFunc() {
-  std::stringstream ss;
-  ss << "I am printed in a useless function" << std::endl;
-  std::cout << ss.str();
-};
 
 void myObject::sendToLabView(const char* message) {
   // Send data to LabView
