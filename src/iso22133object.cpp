@@ -70,7 +70,8 @@ TestObject::~TestObject() {
 };
 
 void TestObject::disconnect() {
-	std::scoped_lock lock(disconnectMutex);
+	// std::lock_guard<std::mutex> lock(disconnectMutex);
+  std::lock_guard<std::mutex> lock(disconnectMutex);
 	try {
 		ctrlChannel.disconnect();  // Close TCP socket
 	} catch (const std::exception& e) {
@@ -230,7 +231,7 @@ void TestObject::receiveUDP() {
 
 void TestObject::checkHeabTimeout() {
 	using namespace std::chrono;
-	std::scoped_lock lock(heabMutex);
+	std::lock_guard<std::mutex> lock(heabMutex);
 	// Check time difference of received HEAB and last HEAB
 	auto timeSinceHeab = steady_clock::now() - lastHeabTime;
 	if (!awaitingFirstHeab && timeSinceHeab > heartbeatTimeout) {
@@ -369,7 +370,7 @@ void TestObject::handleHEAB(HeabMessageDataType& heab) {
 		std::cerr << ss.str();
 		// TODO: do something
 	}
-	std::scoped_lock lock(heabMutex);
+	std::lock_guard<std::mutex> lock(heabMutex);
 	lastHeabTime = steady_clock::now();
 	awaitingFirstHeab = false;
 
@@ -391,7 +392,7 @@ void TestObject::handleHEAB(HeabMessageDataType& heab) {
 }
 
 std::chrono::milliseconds TestObject::getNetworkDelay() {
-	std::scoped_lock lock(netwrkDelayMutex);
+	std::lock_guard<std::mutex> lock(netwrkDelayMutex);
 	if (awaitingFirstHeab) {
 		return std::chrono::milliseconds(0);
 	}
@@ -399,7 +400,7 @@ std::chrono::milliseconds TestObject::getNetworkDelay() {
 }
 
 void TestObject::setNetworkDelay(std::chrono::milliseconds delay) {
-	std::scoped_lock lock(netwrkDelayMutex);
+  std::lock_guard<std::mutex> lock(netwrkDelayMutex);
 	estimatedNetworkDelay = delay;
 }
 

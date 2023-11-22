@@ -10,7 +10,7 @@
  * @param event Event according to ISO22133::EventType
  */
 void ISO22133::State::handleEvent(TestObject& obj, const ISO22133::Events::EventType event) {
-	std::scoped_lock lock(eventMutex);
+	std::lock_guard<std::mutex> lock(eventMutex);
 	auto transition
 		= std::find_if(language.begin(), language.end(), [&event, this](const ISO22133::Transition& tr) {
 			  return event == tr.event && this->getStateID() == tr.source;

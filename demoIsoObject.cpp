@@ -78,7 +78,7 @@ public:
    *
    */
   void handleAbort() {
-    sendToLabView("ABORT");
+    sendToLabView("X"); // X = ABORT
   }
 
   //! overridden on*message* function.
@@ -86,7 +86,7 @@ public:
     std::cout << "Object Settings Received" << std::endl;
     setObjectSettings(osem);
     PRINT_STRUCT(ObjectSettingsType, &osem, PRINT_FIELD(TestModeType, testMode))
-    sendToLabView("ONSEM");
+    sendToLabView("0"); // 0 = ONSEM
 
   }
 
@@ -142,10 +142,9 @@ private:
   io_service m_ioService;
   tcp::acceptor m_acceptor;
   tcp::socket m_socket;
-  void sendToLabView(std::string_view message) {
-    const char* cstr = message.data();
+  void sendToLabView(const char* message) {
     // Send data to LabView
-    m_socket.write_some(buffer(cstr, std::strlen(cstr)));
+    m_socket.write_some(buffer(message, std::strlen(message)));
     std::cout << "Sent data to LabView: " << message << std::endl;
   }
 };
