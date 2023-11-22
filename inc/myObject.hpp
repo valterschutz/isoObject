@@ -7,16 +7,16 @@ using ip::tcp;
 
 class myObject : public ISO22133::TestObject {
 public:
-  std::vector<TrajectoryWaypointType> trajectory;
-  void setMonr(double x, double y, double z, double heading_rad,
-               double lateral_m_s, double lonitudinal_m_s);
   myObject(std::string ip);
+  ~myObject();
 
   // Overriden functions
   void handleAbort() override;
-  void onOSEM(ObjectSettingsType &osem) override;
-  void onTRAJ() override;
-  void onSTRT(StartMessageType &) override;
+	void onStateChange() override;
+	void onOSEM(ObjectSettingsType& osem) override;
+	void onHEAB(HeabMessageDataType& heab) override;
+	void onOSTM(ObjectCommandType& ostm) override;
+	void onSTRT(StartMessageType& strt) override;
 private:
   int dummyMember;
   void dummyFunc();

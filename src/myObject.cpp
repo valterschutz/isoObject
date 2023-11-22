@@ -4,31 +4,6 @@
 using namespace boost::asio;
 using ip::tcp;
 
-void myObject::setMonr(double x, double y, double z, double heading_rad,
-             double lateral_m_s, double lonitudinal_m_s) {
-  // Initialize required fields in MONR
-  CartesianPosition pos;
-  SpeedType spd;
-  pos.xCoord_m = x;
-  pos.yCoord_m = y;
-  pos.zCoord_m = z;
-  pos.heading_rad = heading_rad;
-  pos.isHeadingValid = true;
-  pos.isPositionValid = true;
-  pos.isXcoordValid = true;
-  pos.isYcoordValid = true;
-  pos.isZcoordValid = true;
-  spd.lateral_m_s = lateral_m_s;
-  spd.longitudinal_m_s = lonitudinal_m_s;
-  spd.isLateralValid = true;
-  spd.isLongitudinalValid = true;
-
-  this->setPosition(pos);
-  this->setSpeed(spd);
-  using namespace boost::asio;
-  using ip::tcp;
-}
-
 myObject::myObject(std::string ip) :
   ISO22133::TestObject(ip),
   dummyMember(0),
@@ -37,7 +12,6 @@ myObject::myObject(std::string ip) :
   m_socket{m_ioService} {
     ObjectSettingsType osem;
     osem.testMode = TEST_MODE_UNAVAILABLE;
-    setMonr(1, 2, 3, 0.4, 5, 6);
     setObjectSettings(osem);
     
     // accept a connection
@@ -45,9 +19,17 @@ myObject::myObject(std::string ip) :
     std::cout << "[BIKE]: Accepted connection" << std::endl;
 }
 
+myObject::~myObject() {
+  std::cout << "myObject destructor" << std::endl;
+}
+
 void myObject::handleAbort() {
   sendToLabView("X"); // X = ABORT
 }
+
+void myObject::onStateChange() {
+  std::cout << "onStateChange" << std::endl;
+};
 
 //! overridden on*message* function.
 void myObject::onOSEM(ObjectSettingsType &osem) {
@@ -58,42 +40,12 @@ void myObject::onOSEM(ObjectSettingsType &osem) {
 
 }
 
-void myObject::onTRAJ() {
-  std::cout << "Got onTRAJ signal, fetching new traj segments" << std::endl;
-  std::vector<TrajectoryWaypointType> newTraj;
-  newTraj = this->getTrajectory();
-  if (this->getObjectSettings().testMode == TEST_MODE_ONLINE) {
-    std::cout
-        << "Test mode is online planned, appending new trajectory to existing"
-        << std::endl;
-    this->trajectory.insert(this->trajectory.end(), newTraj.begin(),
-                            newTraj.end());
+void myObject::onHEAB(HeabMessageDataType& heab) {
+  std::cout << "onHEAB" << std::endl;
+}
 
-    // We might receive trajectories that overlap, we remove the duplicate
-    // points by checking the time
-    std::sort(
-        this->trajectory.begin(), this->trajectory.end(),
-        [](const TrajectoryWaypointType &t1,
-           const TrajectoryWaypointType &t2) {
-          return t1.relativeTime.tv_sec * 1000000 + t1.relativeTime.tv_usec <
-                 t2.relativeTime.tv_sec * 1000000 + t2.relativeTime.tv_usec;
-        });
-    this->trajectory.erase(
-        std::unique(this->trajectory.begin(), this->trajectory.end(),
-                    [](const TrajectoryWaypointType &t1,
-                       const TrajectoryWaypointType &t2) {
-                      return t1.relativeTime.tv_sec * 1000000 +
-                                 t1.relativeTime.tv_usec ==
-                             t2.relativeTime.tv_sec * 1000000 +
-                                 t2.relativeTime.tv_usec;
-                    }),
-        this->trajectory.end());
-  } else {
-    std::cout << "Test mode is preplanned, replacing existing trajectory"
-              << std::endl;
-    this->trajectory = newTraj;
-  }
-  std::cout << "Trajectory size: " << this->trajectory.size() << std::endl;
+void myObject::onOSTM(ObjectCommandType& ostm) {
+  std::cout << "onOSTM" << std::endl;
 }
 
 void myObject::onSTRT(StartMessageType &) {
