@@ -1,4 +1,4 @@
-#include "myObject.hpp"
+#include "bikeObject.hpp"
 
 #include <chrono>
 #include <boost/program_options.hpp>
@@ -60,7 +60,7 @@ void loop() {
 int main(int argc, char **argv) {
   auto args = parseArguments(argc, argv);
   auto ip = resolveIP(args["listen-ip"].as<std::string>());
-  myObject obj(ip);
+  bikeObject obj(ip);
   std::string behaviour = args["behaviour"].as<std::string>();
   if (behaviour == "follow-trajectory") {
     // runFollowTrajectory(obj);

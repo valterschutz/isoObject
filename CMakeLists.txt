@@ -57,7 +57,7 @@ add_library(${ISOOBJECT_LIBRARY} SHARED
     ${CMAKE_CURRENT_SOURCE_DIR}/src/iso22133object.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/iso22133state.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/trajDecoder.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/myObject.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/bikeObject.cpp
 )
 
 target_include_directories(${ISOOBJECT_LIBRARY} PUBLIC
@@ -92,7 +92,7 @@ set_property(TARGET ${ISOOBJECT_LIBRARY} APPEND PROPERTY
 )
 
 set_property(TARGET ${ISOOBJECT_LIBRARY} APPEND PROPERTY
-    PUBLIC_HEADER ${CMAKE_CURRENT_SOURCE_DIR}/inc/myObject.hpp
+    PUBLIC_HEADER ${CMAKE_CURRENT_SOURCE_DIR}/inc/bikeObject.hpp
 )
 
 set_property(TARGET ${ISOOBJECT_LIBRARY} APPEND PROPERTY

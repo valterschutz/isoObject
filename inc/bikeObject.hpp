@@ -5,12 +5,12 @@
 using namespace boost::asio;
 using ip::tcp;
 
-class myObject : public ISO22133::TestObject {
+class bikeObject : public ISO22133::TestObject {
 public:
-  myObject(std::string ip);
-  ~myObject();
+  bikeObject(std::string ip);
 
   // Overriden functions
+  ~bikeObject() override;
   void handleAbort() override;
 	void onStateChange() override;
 	void onOSEM(ObjectSettingsType& osem) override;

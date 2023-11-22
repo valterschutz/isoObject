@@ -1,10 +1,10 @@
-#include "myObject.hpp"
+#include "bikeObject.hpp"
 #include "printUtil.hpp"
 
 using namespace boost::asio;
 using ip::tcp;
 
-myObject::myObject(std::string ip) :
+bikeObject::bikeObject(std::string ip) :
   ISO22133::TestObject(ip),
   m_ioService{},
   m_acceptor{m_ioService, tcp::endpoint(tcp::v4(), 50000)},
@@ -18,20 +18,20 @@ myObject::myObject(std::string ip) :
     std::cout << "[BIKE]: Accepted connection" << std::endl;
 }
 
-myObject::~myObject() {
-  std::cout << "myObject destructor" << std::endl;
+bikeObject::~bikeObject() {
+  std::cout << "bikeObject destructor" << std::endl;
 }
 
-void myObject::handleAbort() {
+void bikeObject::handleAbort() {
   sendToLabView("X"); // X = ABORT
 }
 
-void myObject::onStateChange() {
+void bikeObject::onStateChange() {
   std::cout << "onStateChange" << std::endl;
 };
 
 //! overridden on*message* function.
-void myObject::onOSEM(ObjectSettingsType &osem) {
+void bikeObject::onOSEM(ObjectSettingsType &osem) {
   std::cout << "Object Settings Received" << std::endl;
   setObjectSettings(osem);
   PRINT_STRUCT(ObjectSettingsType, &osem, PRINT_FIELD(TestModeType, testMode))
@@ -39,19 +39,19 @@ void myObject::onOSEM(ObjectSettingsType &osem) {
 
 }
 
-void myObject::onHEAB(HeabMessageDataType& heab) {
+void bikeObject::onHEAB(HeabMessageDataType& heab) {
   std::cout << "onHEAB" << std::endl;
 }
 
-void myObject::onOSTM(ObjectCommandType& ostm) {
+void bikeObject::onOSTM(ObjectCommandType& ostm) {
   std::cout << "onOSTM" << std::endl;
 }
 
-void myObject::onSTRT(StartMessageType &) {
+void bikeObject::onSTRT(StartMessageType &) {
   std::cout << "Object Starting" << std::endl;
 }
 
-void myObject::sendToLabView(const char* message) {
+void bikeObject::sendToLabView(const char* message) {
   // Send data to LabView
   m_socket.write_some(buffer(message, std::strlen(message)));
   std::cout << "Sent data to LabView: " << message << std::endl;
