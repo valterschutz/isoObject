@@ -1,3 +1,3 @@
-int addTwo(int x) {
+double addTwo(double x) {
   return x + 2;
 }

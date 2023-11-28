@@ -1,1 +1,1 @@
-int addTwo(int x);
+double addTwo(double x);
