@@ -6,10 +6,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(CMAKE_SHARED_LINKER_FLAGS "-Wl,--disable-new-dtags")
 
-# Manage namespace of the project
+# The different things we want to build
 set(ISOOBJECT_LIBRARY ${PARENT_TARGET_NAMESPACE}${PROJECT_NAME})
 set(ISOOBJECT_TEST ${ISOOBJECT_LIBRARY}Demo)
 set(ISOOBJECT_EMBEDDED ${ISOOBJECT_LIBRARY}Embedded)
+set(ADDTWO_EMBEDDED addTwoEmbedded)
 
 #ISO22133 library/headers
 add_subdirectory(iso22133)
@@ -92,7 +93,7 @@ target_link_libraries(${ISOOBJECT_TEST} LINK_PUBLIC
 add_library(${ISOOBJECT_EMBEDDED} SHARED
     ${CMAKE_CURRENT_SOURCE_DIR}/embeddedIsoObject.cpp
 )
-set_property(TARGET ${ISOOBJECT_EMBEDDED} APPEND PROPERTY
+set_property(TARGET ${ISOOBJECT_EMBEDDED} PROPERTY
     PUBLIC_HEADER ${CMAKE_CURRENT_SOURCE_DIR}/inc/embeddedIsoObject.hpp
 )
 target_include_directories(${ISOOBJECT_EMBEDDED} PUBLIC
@@ -102,6 +103,21 @@ target_link_libraries(${ISOOBJECT_EMBEDDED} LINK_PUBLIC
     ${ISOOBJECT_LIBRARY}
     Boost::program_options
 )
+
+# A testing library for embedded use
+add_library(${ADDTWO_EMBEDDED} SHARED
+    ${CMAKE_CURRENT_SOURCE_DIR}/embeddedAddTwo.cpp
+)
+set_property(TARGET ${ADDTWO_EMBEDDED} PROPERTY
+    PUBLIC_HEADER ${CMAKE_CURRENT_SOURCE_DIR}/inc/embeddedAddTwo.hpp
+)
+target_include_directories(${ADDTWO_EMBEDDED} PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/inc
+)
+# target_link_libraries(${ADDTWO_EMBEDDED} LINK_PUBLIC
+#     ${ISOOBJECT_LIBRARY}
+#     Boost::program_options
+# )
 
 install(CODE "MESSAGE(STATUS \"Installing target ${ISOOBJECT_LIBRARY}\")")
 install(TARGETS ${ISOOBJECT_LIBRARY}
