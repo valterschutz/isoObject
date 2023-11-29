@@ -1,6 +1,8 @@
 #include "bikeObject.hpp"
 #include "printUtil.hpp"
 #include <cstddef>
+#include <string>
+#include <boost/asio.hpp>
 
 using namespace boost::asio;
 using ip::tcp;
@@ -15,13 +17,13 @@ bikeObject::bikeObject(std::string ip) :
     setObjectSettings(osem);
     
     // accept a connection
-    std::cout << "[BIKE]: Waiting for connection...\n";
-    m_acceptor.accept(m_socket);
-    std::cout << "[BIKE]: Accepted connection\n";
-    std::cout << "[BIKE]: Sending data...\n";
-    const uint32_t data = 42;
-    sendToLabView(&data, sizeof(data));
-    std::cout << "[BIKE]: Data sent\n";
+    // std::cout << "[BIKE]: Waiting for connection...\n";
+    // m_acceptor.accept(m_socket);
+    // std::cout << "[BIKE]: Accepted connection\n";
+    // std::cout << "[BIKE]: Sending data...\n";
+    // const uint32_t data = 42;
+    // sendToLabView(&data, sizeof(data));
+    // std::cout << "[BIKE]: Data sent\n";
 }
 
 bikeObject::~bikeObject() {
@@ -56,7 +58,7 @@ void bikeObject::onOSTM(ObjectCommandType& ostm) {
 }
 
 void bikeObject::onSTRT(StartMessageType &) {
-  std::cout << "Object Starting" << std::endl;
+  std::cout << "onSTRT" << std::endl;
 }
 
 void bikeObject::sendToLabView(const void* message, std::size_t size) {

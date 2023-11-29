@@ -8,7 +8,6 @@ int main(int argc, char **argv) {
   std::string behaviour = args["behaviour"].as<std::string>();
   if (behaviour == "follow-trajectory") {
     // runFollowTrajectory(obj);
-    //
     loop();
   } else {
     std::invalid_argument("Unknown behaviour");
