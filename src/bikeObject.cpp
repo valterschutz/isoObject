@@ -1,5 +1,6 @@
 #include "bikeObject.hpp"
 #include "printUtil.hpp"
+#include <cstddef>
 
 using namespace boost::asio;
 using ip::tcp;
@@ -14,8 +15,13 @@ bikeObject::bikeObject(std::string ip) :
     setObjectSettings(osem);
     
     // accept a connection
+    std::cout << "[BIKE]: Waiting for connection...\n";
     m_acceptor.accept(m_socket);
-    std::cout << "[BIKE]: Accepted connection" << std::endl;
+    std::cout << "[BIKE]: Accepted connection\n";
+    std::cout << "[BIKE]: Sending data...\n";
+    const uint32_t data = 42;
+    sendToLabView(&data, sizeof(data));
+    std::cout << "[BIKE]: Data sent\n";
 }
 
 bikeObject::~bikeObject() {
@@ -23,7 +29,7 @@ bikeObject::~bikeObject() {
 }
 
 void bikeObject::handleAbort() {
-  sendToLabView("X"); // X = ABORT
+  // sendToLabView("X"); // X = ABORT
 }
 
 void bikeObject::onStateChange() {
@@ -35,7 +41,7 @@ void bikeObject::onOSEM(ObjectSettingsType &osem) {
   std::cout << "Object Settings Received" << std::endl;
   setObjectSettings(osem);
   PRINT_STRUCT(ObjectSettingsType, &osem, PRINT_FIELD(TestModeType, testMode))
-  sendToLabView("0"); // 0 = ONSEM
+  // sendToLabView("0"); // 0 = ONSEM
 
 }
 
@@ -45,14 +51,17 @@ void bikeObject::onHEAB(HeabMessageDataType& heab) {
 
 void bikeObject::onOSTM(ObjectCommandType& ostm) {
   std::cout << "onOSTM" << std::endl;
+  const uint32_t data = 0;
+  sendToLabView(&data, sizeof(data));
 }
 
 void bikeObject::onSTRT(StartMessageType &) {
   std::cout << "Object Starting" << std::endl;
 }
 
-void bikeObject::sendToLabView(const char* message) {
+void bikeObject::sendToLabView(const void* message, std::size_t size) {
+  // TODO: check if endianess matters
   // Send data to LabView
-  m_socket.write_some(buffer(message, std::strlen(message)));
-  std::cout << "Sent data to LabView: " << message << std::endl;
+  m_socket.write_some(buffer(message, size));
+  std::cout << "Sent data to LabView of length " << size << std::endl;
 }

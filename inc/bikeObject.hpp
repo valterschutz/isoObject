@@ -1,6 +1,7 @@
 #pragma once
 
 #include "iso22133object.hpp"
+#include <cstddef>
 
 using namespace boost::asio;
 using ip::tcp;
@@ -21,5 +22,5 @@ private:
   io_service m_ioService;
   tcp::acceptor m_acceptor;
   tcp::socket m_socket;
-  void sendToLabView(const char* message);
+  void sendToLabView(const void* message, std::size_t size);
 };
