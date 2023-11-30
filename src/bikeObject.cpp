@@ -9,14 +9,20 @@
 using namespace boost::asio;
 using ip::tcp;
 
-void bikeInit::onExit(ISO22133::TestObject& to) {
-  // TODO: only allow function to finish if m_connected_to_bike is true
-  std::cout << "[BIKE]: exited init state\n";
-}
+class bikeInit : public ISO22133::Init {
+public:
+  void onExit(ISO22133::TestObject& to) {
+    // TODO: only allow function to finish if m_connected_to_bike is true
+    std::cout << "[BIKE]: exited init state\n";
+  }
+};
 
-void bikePreArming::onEnter(ISO22133::TestObject& to) {
-  std::cout << "[BIKE]: entered prearming state\n";
-}
+class bikePreArming : public ISO22133::PreArming {
+public:
+  void onEnter(ISO22133::TestObject& to) {
+    std::cout << "[BIKE]: entered prearming state\n";
+  }
+};
 
 bikeObject::bikeObject(std::string ip) :
   ISO22133::TestObject(ip),

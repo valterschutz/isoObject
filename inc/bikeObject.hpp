@@ -7,16 +7,6 @@
 using namespace boost::asio;
 using ip::tcp;
 
-class bikeInit : public ISO22133::Init {
-public:
-  void onExit(ISO22133::TestObject&) override;
-};
-
-class bikePreArming : public ISO22133::PreArming {
-public:
-  void onEnter(ISO22133::TestObject&) override;
-};
-
 class bikeObject : public ISO22133::TestObject {
 public:
   bikeObject(std::string ip);
