@@ -7,8 +7,8 @@ int main(int argc, char **argv) {
   bikeObject obj(ip);
   std::string behaviour = args["behaviour"].as<std::string>();
   if (behaviour == "follow-trajectory") {
-    // runFollowTrajectory(obj);
-    loop();
+    runFollowTrajectory(obj);
+    // loop();
   } else {
     std::invalid_argument("Unknown behaviour");
   }
