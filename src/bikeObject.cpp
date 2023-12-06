@@ -4,28 +4,13 @@
 #include <string>
 #include <boost/asio.hpp>
 #include "iso22133object.hpp"
-#include "iso22133state.hpp"
 
 using namespace boost::asio;
 using ip::tcp;
 
-class bikeInit : public ISO22133::Init {
-public:
-  void onExit(ISO22133::TestObject& to) {
-    // TODO: only allow function to finish if m_connected_to_bike is true
-    std::cout << "[BIKE]: exited init state\n";
-  }
-};
-
-class bikePreArming : public ISO22133::PreArming {
-public:
-  void onEnter(ISO22133::TestObject& to) {
-    std::cout << "[BIKE]: entered prearming state\n";
-  }
-};
-
 bikeObject::bikeObject(std::string ip) :
   ISO22133::TestObject(ip),
+  // m_prevState{state},
   m_ioService{},
   m_acceptor{m_ioService, tcp::endpoint(tcp::v4(), 50000)},
   m_socket{m_ioService},
@@ -34,6 +19,9 @@ bikeObject::bikeObject(std::string ip) :
     osem.testMode = TEST_MODE_UNAVAILABLE;
     setMonr(1,2,3,0.4,5,6); // TODO
     setObjectSettings(osem);
+
+    m_prevStateID = state->getStateID();
+    // std::cout << "[BIKE]: State ID in constructor is " << m_prevStateID << '\n';
     
     // accept a connection
     std::cout << "[BIKE]: Waiting for connection...\n";
@@ -78,12 +66,17 @@ void bikeObject::setMonr(double x,
 }
 
 void bikeObject::handleAbort() {
+  // BikeMsg bike_msg{
   // sendToLabView("X"); // X = ABORT
-  std::cout << "[BIKE]: should abort\n";
+  std::cout << "[BIKE]: handleAbort(): Current state: " << state->getName() << ", previous state ID is " << m_prevStateID << '\n';
+  uint8_t stateTransition[2] = {static_cast<uint8_t>(m_prevStateID), static_cast<uint8_t>(state->getStateID())};
+  uint32_t msg_size = 3;
+  sendToLabView(msg_size, BikeMsg{0, static_cast<void*>(stateTransition)});
 }
 
 void bikeObject::onStateChange() {
-  std::cout << "[BIKE]: onStateChange" << std::endl;
+  std::cout << "[BIKE]: onStateChange(): Current state is " << state->getName() << ", previous state ID is " << m_prevStateID << std::endl;
+  m_prevStateID = state->getStateID();
 };
 
 //! overridden on*message* function.
@@ -91,7 +84,6 @@ void bikeObject::onOSEM(ObjectSettingsType &osem) {
   std::cout << "[BIKE]: Object Settings Received" << std::endl;
   setObjectSettings(osem);
   PRINT_STRUCT(ObjectSettingsType, &osem, PRINT_FIELD(TestModeType, testMode))
-  // sendToLabView("0"); // 0 = ONSEM
 
 }
 
@@ -101,30 +93,45 @@ void bikeObject::onHEAB(HeabMessageDataType& heab) {
 
 void bikeObject::onOSTM(ObjectCommandType& ostm) {
   std::cout << "[BIKE]: onOSTM" << std::endl;
-  const uint32_t data = 0;
-  sendToLabView(&data, sizeof(data));
 }
 
 void bikeObject::onSTRT(StartMessageType &) {
   std::cout << "[BIKE]: onSTRT" << std::endl;
 }
 
-void bikeObject::sendToLabView(const void* message, std::size_t size) {
+void bikeObject::sendToLabView(const uint32_t msg_size, const BikeMsg& bike_msg) {
+// typedef struct BikeMsg {
+//   uint8_t cmd;
+//   uint32_t data_size;
+//   void *data;
+// } BikeMsg;
   // TODO: check if endianess matters
-  // Send data to LabView
-  m_socket.write_some(buffer(message, size));
-  std::cout << "[BIKE]: Sent data to LabView of length " << size << std::endl;
+  std::size_t cmd_size = sizeof(bike_msg.cmd);
+  std::size_t data_size = msg_size - cmd_size;
+  
+  // Construct a buffer
+  std::vector<uint8_t> vecBuffer(sizeof(msg_size) + msg_size);
+  std::size_t offset{0};
+
+  // Write msg_size to vecBuffer
+  std::memcpy(vecBuffer.data() + offset, &msg_size, sizeof(msg_size));
+  offset += sizeof(msg_size);
+
+  // Write cmd to vecBuffer
+  std::memcpy(vecBuffer.data() + offset, &(bike_msg.cmd), cmd_size);
+  offset += cmd_size;
+
+  // Write data to vecBuffer
+  std::memcpy(vecBuffer.data() + offset, bike_msg.data, data_size);
+  offset += data_size;
+
+  std::size_t bytes_sent = write(m_socket, buffer(vecBuffer.data(), vecBuffer.size()));
+  if (bytes_sent == vecBuffer.size()) {
+    std::cout << "[BIKE]: Successfully sent data to LabView of length " << bytes_sent << std::endl;
+  } else {
+    std::cout << "[BIKE]: Error sending data: Not all bytes sent\n";
+  }
 };
-
-ISO22133::Init* bikeObject::createInit() const {
-  // std::cout << "[BIKE]: Init state created.\n";
-  return dynamic_cast<ISO22133::Init*>(new bikeInit);
-}
-
-ISO22133::PreArming* bikeObject::createPreArming() const {
-  // std::cout << "[BIKE]: PreArming state created.\n";
-  return dynamic_cast<ISO22133::PreArming*>(new bikePreArming);
-}
 
 void runFollowTrajectory(bikeObject& obj) {
     std::vector<TrajectoryWaypointType> traj;
