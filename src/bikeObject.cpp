@@ -68,20 +68,17 @@ void bikeObject::setMonr(double x,
 void bikeObject::handleAbort() {
   // BikeMsg bike_msg{
   // sendToLabView("X"); // X = ABORT
-  std::cout << "[BIKE]: handleAbort(): Current state: " << state->getName() << ", previous state ID is " << m_prevStateID << '\n';
-  uint8_t stateTransition[2] = {static_cast<uint8_t>(m_prevStateID), static_cast<uint8_t>(state->getStateID())};
-  uint32_t msg_size = 3;
-  // uint32_t msg_size_n = htonl(msg_size);
-  sendToLabView(msg_size, BikeMsg{0, static_cast<void*>(stateTransition)});
-  // std::size_t bytes_sent = write(m_socket, buffer("X"));
-  // const char* message = "X";
-  
-  // std::size_t bytes_sent = write(m_socket, buffer(&msg_size_n, sizeof(msg_size_n)));
-  // std::cout << "[BIKE]: sent bytes to bike\n";
+  // std::cout << "[BIKE]: handleAbort(): Current state: " << state->getName() << ", previous state ID is " << m_prevStateID << '\n';
+  // uint8_t stateTransition[2] = {static_cast<uint8_t>(m_prevStateID), static_cast<uint8_t>(state->getStateID())};
+  // uint32_t msg_size = 3;
+  // sendToLabView(msg_size, BikeMsg{0, static_cast<void*>(stateTransition)});
 }
 
 void bikeObject::onStateChange() {
   // std::cout << "[BIKE]: onStateChange(): Current state is " << state->getName() << ", previous state ID is " << m_prevStateID << std::endl;
+  uint8_t stateTransition[2] = {static_cast<uint8_t>(m_prevStateID), static_cast<uint8_t>(state->getStateID())};
+  uint32_t msg_size = 3;
+  sendToLabView(msg_size, BikeMsg{0, static_cast<void*>(stateTransition)});
   m_prevStateID = state->getStateID();
 };
 
@@ -98,7 +95,15 @@ void bikeObject::onHEAB(HeabMessageDataType& heab) {
 }
 
 void bikeObject::onOSTM(ObjectCommandType& ostm) {
-  std::cout << "[BIKE]: onOSTM" << std::endl;
+  /*! OSTM commands */
+  // enum ObjectCommandType {
+  //     OBJECT_COMMAND_ARM = 0x02,				//!< Request to arm the target object
+  //     OBJECT_COMMAND_DISARM = 0x03,			//!< Request to disarm the target object
+  //     OBJECT_COMMAND_REMOTE_CONTROL = 0x06,	//!< Request for remote control of the target object
+  //     OBJECT_COMMAND_ALL_CLEAR = 0x0A         //!< Signal that abort no longer necessary
+  // };
+  std::cout << "[BIKE]: onOSTM, current state is " << getCurrentStateName() << ", command type is " << ostm << std::endl;
+  // setObjectState(getCurrentStateID());
 }
 
 void bikeObject::onSTRT(StartMessageType &) {
