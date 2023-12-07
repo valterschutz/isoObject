@@ -71,11 +71,17 @@ void bikeObject::handleAbort() {
   std::cout << "[BIKE]: handleAbort(): Current state: " << state->getName() << ", previous state ID is " << m_prevStateID << '\n';
   uint8_t stateTransition[2] = {static_cast<uint8_t>(m_prevStateID), static_cast<uint8_t>(state->getStateID())};
   uint32_t msg_size = 3;
+  // uint32_t msg_size_n = htonl(msg_size);
   sendToLabView(msg_size, BikeMsg{0, static_cast<void*>(stateTransition)});
+  // std::size_t bytes_sent = write(m_socket, buffer("X"));
+  // const char* message = "X";
+  
+  // std::size_t bytes_sent = write(m_socket, buffer(&msg_size_n, sizeof(msg_size_n)));
+  // std::cout << "[BIKE]: sent bytes to bike\n";
 }
 
 void bikeObject::onStateChange() {
-  std::cout << "[BIKE]: onStateChange(): Current state is " << state->getName() << ", previous state ID is " << m_prevStateID << std::endl;
+  // std::cout << "[BIKE]: onStateChange(): Current state is " << state->getName() << ", previous state ID is " << m_prevStateID << std::endl;
   m_prevStateID = state->getStateID();
 };
 
@@ -108,13 +114,14 @@ void bikeObject::sendToLabView(const uint32_t msg_size, const BikeMsg& bike_msg)
   // TODO: check if endianess matters
   std::size_t cmd_size = sizeof(bike_msg.cmd);
   std::size_t data_size = msg_size - cmd_size;
-  
+  // 
   // Construct a buffer
   std::vector<uint8_t> vecBuffer(sizeof(msg_size) + msg_size);
   std::size_t offset{0};
-
+  //
   // Write msg_size to vecBuffer
-  std::memcpy(vecBuffer.data() + offset, &msg_size, sizeof(msg_size));
+  uint32_t msg_size_n = htonl(msg_size);
+  std::memcpy(vecBuffer.data() + offset, &msg_size_n, sizeof(msg_size_n));
   offset += sizeof(msg_size);
 
   // Write cmd to vecBuffer
