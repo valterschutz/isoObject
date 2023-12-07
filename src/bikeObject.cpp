@@ -8,34 +8,26 @@
 using namespace boost::asio;
 using ip::tcp;
 
+constexpr int PORT = 50000;
+
 bikeObject::bikeObject(std::string ip) :
   ISO22133::TestObject(ip),
-  // m_prevState{state},
-  m_ioService{},
-  m_acceptor{m_ioService, tcp::endpoint(tcp::v4(), 50000)},
-  m_socket{m_ioService},
-  m_connected_to_bike{false} {
+  ioService{},
+  acceptor{ioService, tcp::endpoint(tcp::v4(), PORT)},
+  socket{ioService},
+  connectedToBike{false} {
     ObjectSettingsType osem;
     osem.testMode = TEST_MODE_UNAVAILABLE;
     setMonr(1,2,3,0.4,5,6); // TODO
     setObjectSettings(osem);
 
-    m_prevStateID = state->getStateID();
-    // std::cout << "[BIKE]: State ID in constructor is " << m_prevStateID << '\n';
+    prevStateID = state->getStateID();
     
     // accept a connection
     std::cout << "[BIKE]: Waiting for connection...\n";
-    m_acceptor.accept(m_socket);
-    m_connected_to_bike = true;
+    acceptor.accept(socket);
+    connectedToBike = true;
     std::cout << "[BIKE]: Accepted connection\n";
-    // std::cout << "[BIKE]: Sending data...\n";
-    // const uint32_t data = 42;
-    // sendToLabView(&data, sizeof(data));
-    // std::cout << "[BIKE]: Data sent\n";
-}
-
-bikeObject::~bikeObject() {
-  std::cout << "[BIKE]: bikeObject destructor" << std::endl;
 }
 
 void bikeObject::setMonr(double x,
@@ -66,80 +58,47 @@ void bikeObject::setMonr(double x,
 }
 
 void bikeObject::handleAbort() {
-  // BikeMsg bike_msg{
-  // sendToLabView("X"); // X = ABORT
-  // std::cout << "[BIKE]: handleAbort(): Current state: " << state->getName() << ", previous state ID is " << m_prevStateID << '\n';
-  // uint8_t stateTransition[2] = {static_cast<uint8_t>(m_prevStateID), static_cast<uint8_t>(state->getStateID())};
-  // uint32_t msg_size = 3;
-  // sendToLabView(msg_size, BikeMsg{0, static_cast<void*>(stateTransition)});
+  std::cout << "Abort!\n";
 }
 
 void bikeObject::onStateChange() {
-  // std::cout << "[BIKE]: onStateChange(): Current state is " << state->getName() << ", previous state ID is " << m_prevStateID << std::endl;
-  uint8_t stateTransition[2] = {static_cast<uint8_t>(m_prevStateID), static_cast<uint8_t>(state->getStateID())};
-  uint32_t msg_size = 3;
-  sendToLabView(msg_size, BikeMsg{0, static_cast<void*>(stateTransition)});
-  m_prevStateID = state->getStateID();
+  uint8_t stateTransition[2] = {static_cast<uint8_t>(prevStateID), static_cast<uint8_t>(state->getStateID())};
+  uint32_t msgSize = 3;
+  if (connectedToBike)
+    sendToLabView(msgSize, BikeMsg{0, static_cast<void*>(stateTransition)});
+  prevStateID = state->getStateID();
 };
 
-//! overridden on*message* function.
-void bikeObject::onOSEM(ObjectSettingsType &osem) {
-  std::cout << "[BIKE]: Object Settings Received" << std::endl;
-  setObjectSettings(osem);
-  PRINT_STRUCT(ObjectSettingsType, &osem, PRINT_FIELD(TestModeType, testMode))
+void bikeObject::sendToLabView(const uint32_t msgSize, const BikeMsg& bikeMsg) {
+  // typedef struct BikeMsg {
+  //   uint8_t cmd;
+  //   uint32_t data_size;
+  //   void *data;
+  // } BikeMsg;
 
-}
+  std::size_t cmdSize = sizeof(bikeMsg.cmd);
+  std::size_t dataSize = msgSize - cmdSize;
 
-void bikeObject::onHEAB(HeabMessageDataType& heab) {
-  // std::cout << "onHEAB" << std::endl;
-}
-
-void bikeObject::onOSTM(ObjectCommandType& ostm) {
-  /*! OSTM commands */
-  // enum ObjectCommandType {
-  //     OBJECT_COMMAND_ARM = 0x02,				//!< Request to arm the target object
-  //     OBJECT_COMMAND_DISARM = 0x03,			//!< Request to disarm the target object
-  //     OBJECT_COMMAND_REMOTE_CONTROL = 0x06,	//!< Request for remote control of the target object
-  //     OBJECT_COMMAND_ALL_CLEAR = 0x0A         //!< Signal that abort no longer necessary
-  // };
-  std::cout << "[BIKE]: onOSTM, current state is " << getCurrentStateName() << ", command type is " << ostm << std::endl;
-  // setObjectState(getCurrentStateID());
-}
-
-void bikeObject::onSTRT(StartMessageType &) {
-  std::cout << "[BIKE]: onSTRT" << std::endl;
-}
-
-void bikeObject::sendToLabView(const uint32_t msg_size, const BikeMsg& bike_msg) {
-// typedef struct BikeMsg {
-//   uint8_t cmd;
-//   uint32_t data_size;
-//   void *data;
-// } BikeMsg;
-  // TODO: check if endianess matters
-  std::size_t cmd_size = sizeof(bike_msg.cmd);
-  std::size_t data_size = msg_size - cmd_size;
-  // 
   // Construct a buffer
-  std::vector<uint8_t> vecBuffer(sizeof(msg_size) + msg_size);
+  std::vector<uint8_t> vecBuffer(sizeof(msgSize) + msgSize);
   std::size_t offset{0};
-  //
+
   // Write msg_size to vecBuffer
-  uint32_t msg_size_n = htonl(msg_size);
-  std::memcpy(vecBuffer.data() + offset, &msg_size_n, sizeof(msg_size_n));
-  offset += sizeof(msg_size);
+  uint32_t msgSizeN = htonl(msgSize);
+  std::memcpy(vecBuffer.data() + offset, &msgSizeN, sizeof(msgSizeN));
+  offset += sizeof(msgSize);
 
   // Write cmd to vecBuffer
-  std::memcpy(vecBuffer.data() + offset, &(bike_msg.cmd), cmd_size);
-  offset += cmd_size;
+  std::memcpy(vecBuffer.data() + offset, &(bikeMsg.cmd), cmdSize);
+  offset += cmdSize;
 
   // Write data to vecBuffer
-  std::memcpy(vecBuffer.data() + offset, bike_msg.data, data_size);
-  offset += data_size;
+  std::memcpy(vecBuffer.data() + offset, bikeMsg.data, dataSize);
+  offset += dataSize;
 
-  std::size_t bytes_sent = write(m_socket, buffer(vecBuffer.data(), vecBuffer.size()));
-  if (bytes_sent == vecBuffer.size()) {
-    std::cout << "[BIKE]: Successfully sent data to LabView of length " << bytes_sent << std::endl;
+  std::size_t bytesSent = write(socket, buffer(vecBuffer.data(), vecBuffer.size()));
+  if (bytesSent == vecBuffer.size()) {
+    std::cout << "[BIKE]: Successfully sent data to LabView of length " << bytesSent << std::endl;
   } else {
     std::cout << "[BIKE]: Error sending data: Not all bytes sent\n";
   }
