@@ -8,13 +8,15 @@
 using namespace boost::asio;
 using ip::tcp;
 
-constexpr int PORT = 50000;
+constexpr int TCP_PORT = 50000;
+constexpr int UDP_PORT = 50001;
 
 bikeObject::bikeObject(std::string ip) :
   ISO22133::TestObject(ip),
-  ioService{},
-  acceptor{ioService, tcp::endpoint(tcp::v4(), PORT)},
-  socket{ioService},
+  context{},
+  tcp_acceptor{context, tcp::endpoint(tcp::v4(), TCP_PORT)},
+  tcp_socket{context},
+  udp_server{context, UDP_PORT},
   connectedToBike{false} {
     ObjectSettingsType osem;
     osem.testMode = TEST_MODE_UNAVAILABLE;
@@ -23,9 +25,11 @@ bikeObject::bikeObject(std::string ip) :
 
     prevStateID = state->getStateID();
     
+    context.run();
+
     // accept a connection
     std::cout << "[BIKE]: Waiting for connection...\n";
-    acceptor.accept(socket);
+    tcp_acceptor.accept(tcp_socket);
     connectedToBike = true;
     std::cout << "[BIKE]: Accepted connection\n";
 }
@@ -96,7 +100,7 @@ void bikeObject::sendToLabView(const uint32_t msgSize, const BikeMsg& bikeMsg) {
   std::memcpy(vecBuffer.data() + offset, bikeMsg.data, dataSize);
   offset += dataSize;
 
-  std::size_t bytesSent = write(socket, buffer(vecBuffer.data(), vecBuffer.size()));
+  std::size_t bytesSent = write(tcp_socket, buffer(vecBuffer.data(), vecBuffer.size()));
   if (bytesSent == vecBuffer.size()) {
     std::cout << "[BIKE]: Successfully sent data to LabView of length " << bytesSent << std::endl;
   } else {

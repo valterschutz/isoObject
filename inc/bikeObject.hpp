@@ -3,6 +3,7 @@
 #include "iso22133object.hpp"
 #include "iso22133.h"
 #include <cstddef>
+#include "bikeUdpServer.hpp"
 
 using namespace boost::asio;
 using ip::tcp;
@@ -27,9 +28,10 @@ public:
   void handleAbort() override;
   void onStateChange() override;
 private:
-  io_service ioService;
-  tcp::acceptor acceptor;
-  tcp::socket socket;
+  io_context context;
+  tcp::acceptor tcp_acceptor;
+  tcp::socket tcp_socket;
+  BikeUDPServer udp_server;
   bool connectedToBike;
   ISO22133::ObjectStateID prevStateID; // Keep track of the previous state id
   void sendToLabView(const uint32_t msg_size, const BikeMsg& bike_msg);
