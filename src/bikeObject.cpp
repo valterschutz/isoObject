@@ -13,10 +13,12 @@ constexpr int UDP_PORT = 50001;
 
 bikeObject::bikeObject(std::string ip) :
   ISO22133::TestObject(ip),
-  context{},
-  tcp_acceptor{context, tcp::endpoint(tcp::v4(), TCP_PORT)},
-  tcp_socket{context},
-  udp_server{context, UDP_PORT},
+  iocontext{},
+  tcp_buffer{},
+  tcp_endpoint{tcp::v4(), TCP_PORT},
+  tcp_acceptor{iocontext, tcp_endpoint},
+  tcp_socket{iocontext},
+  // udp_server{iocontext, UDP_PORT},
   connectedToBike{false} {
     ObjectSettingsType osem;
     osem.testMode = TEST_MODE_UNAVAILABLE;
@@ -25,13 +27,18 @@ bikeObject::bikeObject(std::string ip) :
 
     prevStateID = state->getStateID();
     
-    context.run();
-
-    // accept a connection
+    tcp_acceptor.listen();
     std::cout << "[BIKE]: Waiting for connection...\n";
-    tcp_acceptor.accept(tcp_socket);
-    connectedToBike = true;
-    std::cout << "[BIKE]: Accepted connection\n";
+    tcp_acceptor.async_accept(tcp_socket, [this](const boost::system::error_code&){
+      // accept a connection
+      connectedToBike = true;
+      std::cout << "[BIKE]: Accepted connection\n";
+      // read position and velocity from bike
+      tcp_socket.async_read(tcp_buffer, handle_msg_length_read);
+      });
+
+    iocontext.run();
+    std::cout << "after iocontext.run()\n";
 }
 
 void bikeObject::setMonr(double x,

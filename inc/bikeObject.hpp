@@ -28,12 +28,14 @@ public:
   void handleAbort() override;
   void onStateChange() override;
 private:
-  io_context context;
+  io_context iocontext;
+  tcp::endpoint tcp_endpoint;
   tcp::acceptor tcp_acceptor;
   tcp::socket tcp_socket;
-  BikeUDPServer udp_server;
+  // BikeUDPServer udp_server;
   bool connectedToBike;
   ISO22133::ObjectStateID prevStateID; // Keep track of the previous state id
+  std::vector<uint8_t> tcp_buffer;
   void sendToLabView(const uint32_t msg_size, const BikeMsg& bike_msg);
 };
 
