@@ -3,7 +3,11 @@
 #include <cstddef>
 #include <string>
 #include <boost/asio.hpp>
+#include <boost/endian.hpp>
 #include "iso22133object.hpp"
+#include <iostream>
+#include <chrono>
+#include <thread>
 
 using namespace boost::asio;
 using ip::tcp;
@@ -11,15 +15,34 @@ using ip::tcp;
 constexpr int TCP_PORT = 50000;
 constexpr int UDP_PORT = 50001;
 
+void bikeObject::tcpReadFun() {
+  std::array<char, 4096> arrayBuffer;
+  boost::asio::mutable_buffer msgLengthBuffer = buffer(arrayBuffer, 4);
+  uint32_t msgLength;
+
+  while (tcpSocket.is_open()) {
+    
+    size_t bytesRead = read(tcpSocket, msgLengthBuffer);
+    // Interpret the 4 bytes as uint32_t
+    // msg_length = boost::endian::endian_reverse(*buffer_cast<const uint32_t*>(msg_length_buffer));
+    msgLength = *buffer_cast<const uint32_t*>(msgLengthBuffer);
+    std::cout << "Message length: " << msgLength << std::endl;
+    // std::this_thread::sleep_for(std::chrono::seconds(1));
+    // Now read the rest of the bytes
+    // TODO
+
+    // And then update position and velocity
+    // setMonr(1,2,3,0.4,5,6);
+  }
+}
+
 bikeObject::bikeObject(std::string ip) :
   ISO22133::TestObject(ip),
   iocontext{},
-  tcp_buffer{},
-  tcp_endpoint{tcp::v4(), TCP_PORT},
-  tcp_acceptor{iocontext, tcp_endpoint},
-  tcp_socket{iocontext},
-  // udp_server{iocontext, UDP_PORT},
-  connectedToBike{false} {
+  tcpEndpoint{tcp::v4(), TCP_PORT},
+  tcpAcceptor{iocontext, tcpEndpoint},
+  tcpSocket{iocontext}
+  {
     ObjectSettingsType osem;
     osem.testMode = TEST_MODE_UNAVAILABLE;
     setMonr(1,2,3,0.4,5,6); // TODO
@@ -27,18 +50,23 @@ bikeObject::bikeObject(std::string ip) :
 
     prevStateID = state->getStateID();
     
-    tcp_acceptor.listen();
+    // accept a connection
     std::cout << "[BIKE]: Waiting for connection...\n";
-    tcp_acceptor.async_accept(tcp_socket, [this](const boost::system::error_code&){
-      // accept a connection
-      connectedToBike = true;
-      std::cout << "[BIKE]: Accepted connection\n";
-      // read position and velocity from bike
-      tcp_socket.async_read(tcp_buffer, handle_msg_length_read);
-      });
+    tcpAcceptor.accept(tcpSocket);
+    std::cout << "[BIKE]: Accepted connection\n";
 
-    iocontext.run();
-    std::cout << "after iocontext.run()\n";
+    // start reading from the TCP socket in a separate thread
+    tcpReadThread = std::thread([this]() {
+      this->tcpReadFun();
+    });
+}
+
+bikeObject::~bikeObject() {
+  std::cout << "in destructor\n";
+  tcpSocket.close();
+  if (tcpReadThread.joinable()) {
+    tcpReadThread.join();
+  }
 }
 
 void bikeObject::setMonr(double x,
@@ -75,7 +103,7 @@ void bikeObject::handleAbort() {
 void bikeObject::onStateChange() {
   uint8_t stateTransition[2] = {static_cast<uint8_t>(prevStateID), static_cast<uint8_t>(state->getStateID())};
   uint32_t msgSize = 3;
-  if (connectedToBike)
+  if (tcpSocket.is_open())
     sendToLabView(msgSize, BikeMsg{0, static_cast<void*>(stateTransition)});
   prevStateID = state->getStateID();
 };
@@ -107,7 +135,7 @@ void bikeObject::sendToLabView(const uint32_t msgSize, const BikeMsg& bikeMsg) {
   std::memcpy(vecBuffer.data() + offset, bikeMsg.data, dataSize);
   offset += dataSize;
 
-  std::size_t bytesSent = write(tcp_socket, buffer(vecBuffer.data(), vecBuffer.size()));
+  std::size_t bytesSent = write(tcpSocket, buffer(vecBuffer.data(), vecBuffer.size()));
   if (bytesSent == vecBuffer.size()) {
     std::cout << "[BIKE]: Successfully sent data to LabView of length " << bytesSent << std::endl;
   } else {

@@ -16,8 +16,8 @@ typedef struct BikeMsg {
 class bikeObject : public ISO22133::TestObject {
 public:
   bikeObject(std::string ip);
+  ~bikeObject();
 
-  // Necessary?
   void setMonr(double x,
 		   double y, 
 		   double z, 
@@ -29,14 +29,13 @@ public:
   void onStateChange() override;
 private:
   io_context iocontext;
-  tcp::endpoint tcp_endpoint;
-  tcp::acceptor tcp_acceptor;
-  tcp::socket tcp_socket;
-  // BikeUDPServer udp_server;
-  bool connectedToBike;
+  tcp::endpoint tcpEndpoint;
+  tcp::acceptor tcpAcceptor;
+  tcp::socket tcpSocket;
+  std::thread tcpReadThread;
   ISO22133::ObjectStateID prevStateID; // Keep track of the previous state id
-  std::vector<uint8_t> tcp_buffer;
   void sendToLabView(const uint32_t msg_size, const BikeMsg& bike_msg);
+  void tcpReadFun();
 };
 
 void runFollowTrajectory(bikeObject& obj);
